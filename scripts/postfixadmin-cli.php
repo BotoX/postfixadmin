@@ -146,7 +146,10 @@ class PostfixAdmin {
     }
 
     /**
-     * Dispatches a CLI request
+     * postfixadmin-cli admin view admin@example.com
+     *              - Create AdminHandler.
+     *              - and then a CliView object (Shell class)
+     *              - call CliView->view() ... which under the covers uses AdminHandler*
      */
     public function dispatch() {
         check_db_version(); # ensure the database layout is up to date
@@ -314,34 +317,21 @@ class PostfixAdmin {
      * @param array $params Parameters to parse
      */
     public function parseParams($params) {
-        $this->__parseParams($params);
-    }
-
-    /**
-     * Helper for recursively parsing params
-     */
-    private function __parseParams($params) {
         $count = count($params);
         for ($i = 0; $i < $count; $i++) {
-            if (isset($params[$i])) {
-                if ($params[$i] != '' && $params[$i]{0} === '-') {
-                    $key = substr($params[$i], 1);
-                    $this->params[$key] = true;
-                    unset($params[$i]);
-                    if (isset($params[++$i])) {
-                        # TODO: ideally we should know if a parameter can / must have a value instead of whitelisting known valid values starting with '-' (probably only bool doesn't need a value)
-                        if ($params[$i]{0} !== '-' or $params[$i] != '-1') {
-                            $this->params[$key] = $params[$i];
-                            unset($params[$i]);
-                        } else {
-                            $i--;
-                            $this->__parseParams($params);
-                        }
+            if ($params[$i] != '' && $params[$i]{0} === '-' && $params[$i] != '-1') {
+                $key = substr($params[$i], 1);
+                if (isset($params[$i+1])) {
+                    # TODO: ideally we should know if a parameter can / must have a value instead of whitelisting known valid values starting with '-' (probably only bool doesn't need a value)
+                    if ($params[$i+1]{0} === '-' && $params[$i+1] != '-1') {
+                        $this->params[$key] = true;
+                    } else {
+                        $this->params[$key] = $params[$i+1];
+                        $i++;
                     }
-                } else {
-                    $this->args[] = $params[$i];
-                    unset($params[$i]);
                 }
+            } else {
+                $this->args[] = $params[$i];
             }
         }
     }

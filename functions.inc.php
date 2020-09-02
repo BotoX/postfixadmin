@@ -248,6 +248,9 @@ function check_domain($domain) {
                 $retval = '';
             } elseif (checkdnsrr($domain, 'MX')) {
                 $retval = '';
+            } elseif (checkdnsrr($domain, 'NS')) {
+                error_log("DNS is not correctly configured for $domain to send or receive email");
+                $retval = '';
             } else {
                 $retval = sprintf(Config::lang('pInvalidDomainDNS'), htmlentities($domain));
             }
@@ -1014,6 +1017,9 @@ function _pacrypt_dovecot($pw, $pw_db = '') {
         # only use -t for salted passwords to be backward compatible with dovecot < 2.1
         $dovepasstest = " -t " . escapeshellarg($pw_db);
     }
+
+    $pipes = [];
+
     $pipe = proc_open("$dovecotpw '-s' $method$dovepasstest", $spec, $pipes);
 
     if (!$pipe) {
@@ -1026,16 +1032,23 @@ function _pacrypt_dovecot($pw, $pw_db = '') {
         fwrite($pipes[0], $pw . "\n", 1+strlen($pw));
         usleep(1000);
     }
+
     fwrite($pipes[0], $pw . "\n", 1+strlen($pw));
     fclose($pipes[0]);
+
+    $stderr_output = stream_get_contents($pipes[2]);
 
     // Read hash from pipe stdout
     $password = fread($pipes[1], 200);
 
+    if (!empty($stderr_output) || empty($password)) {
+        error_log("Failed to read password from $dovecotpw ... stderr: $stderr_output, password: $password ");
+        throw new Exception("$dovecotpw failed, see error log for details");
+    }
+
     if (empty($dovepasstest)) {
         if (!preg_match('/^\{' . $method . '\}/', $password)) {
-            $stderr_output = stream_get_contents($pipes[2]);
-            error_log('dovecotpw password encryption failed. STDERR output: '. $stderr_output);
+            error_log("dovecotpw password encryption failed (method: $method) . stderr: $stderr_output");
             throw new Exception("can't encrypt password with dovecotpw, see error log for details");
         }
     } else {
@@ -1611,10 +1624,14 @@ function db_connect() {
         $dsn = "sqlite:{$db}";
         $username_password = false;
     } elseif (db_pgsql()) {
-        if (!isset($CONF['database_port'])) {
-            $CONF['database_port'] = '5432';
+        $dsn = "pgsql:dbname={$CONF['database_name']}";
+        if (isset($CONF['database_host'])) {
+            $dsn .= ";host={$CONF['database_host']}";
         }
-        $dsn = "pgsql:host={$CONF['database_host']};port={$CONF['database_port']};dbname={$CONF['database_name']};options='-c client_encoding=utf8'";
+        if (isset($CONF['database_port'])) {
+            $dsn .= ";port={$CONF['database_port']}";
+        }
+        $dsn .= ";options='-c client_encoding=utf8'";
     } else {
         throw new Exception("<p style='color: red'>FATAL Error:<br />Invalid \$CONF['database_type']! Please fix your config.inc.php!</p>");
     }

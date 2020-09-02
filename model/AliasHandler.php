@@ -21,7 +21,7 @@ class AliasHandler extends PFAHandler {
         # (for existing aliases, init() hides it for non-mailbox aliases)
         $mbgoto = 1 - $this->new;
 
-        $this->struct=array(
+        $this->struct = array(
             # field name                allow       display in...   type    $PALANG label                     $PALANG description                 default / ...
             #                           editing?    form    list
             'status'           => pacol(0,          0,      0,      'html', ''                              , ''                                , '', array(),
@@ -311,7 +311,10 @@ class AliasHandler extends PFAHandler {
     protected function read_from_db_postprocess($db_result) {
         foreach ($db_result as $key => $value) {
             # split comma-separated 'goto' into an array
-            $db_result[$key]['goto'] = explode(',', $db_result[$key]['goto']);
+            $goto = $db_result[$key]['goto'] ?? null;
+            if (is_string($goto)) {
+                $db_result[$key]['goto'] = explode(',', $goto);
+            }
 
             # Vacation enabled?
             list($db_result[$key]['on_vacation'], $db_result[$key]['goto']) = remove_from_array($db_result[$key]['goto'], $this->getVacationAlias());
@@ -398,6 +401,11 @@ class AliasHandler extends PFAHandler {
                     $errors[] = "$singlegoto: $email_check";
                 }
             }
+            if ($this->called_by != "MailboxHandler" && $this->id == $singlegoto) {
+                // The MailboxHandler needs to create an alias that points to itself (for the mailbox)
+                // Otherwise, disallow such aliases as they cause severe trouble in the mail system
+                $errors[] = "$singlegoto: " . Config::Lang('alias_points_to_itself');
+            }
         }
 
         if (count($errors)) {
@@ -437,6 +445,7 @@ class AliasHandler extends PFAHandler {
     * Returns the vacation alias for this user.
     * i.e. if this user's username was roger@example.com, and the autoreply domain was set to
     * autoreply.fish.net in config.inc.php we'd return roger#example.com@autoreply.fish.net
+    *
     * @return string an email alias.
     */
     protected function getVacationAlias() {
@@ -445,7 +454,7 @@ class AliasHandler extends PFAHandler {
     }
  
     /**
-     *  @return true on success false on failure
+     *  @return boolean
      */
     public function delete() {
         if (! $this->view()) {
