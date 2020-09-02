@@ -1080,8 +1080,7 @@ function _pacrypt_dovecot($pw, $pw_db = '') {
  * @param string $pw_db (can be empty if setting a new password)
  * @return string crypt'ed password; if it matches $pw_db then $pw is the original password.
  */
-function _pacrypt_php_crypt($pw, $pw_db)
-{
+function _pacrypt_php_crypt($pw, $pw_db) {
     $configEncrypt = Config::read_string('encrypt');
 
     // use PHPs crypt(), which uses the system's crypt()
@@ -1106,7 +1105,6 @@ function _pacrypt_php_crypt($pw, $pw_db)
             $salt = $method_matches[2];
             $prefix = "{" . $method_matches[1] . "}";
         }
-
     } else {
         $salt_method = 'SHA512'; // hopefully a reasonable default (better than MD5)
         $hash_difficulty = '';
