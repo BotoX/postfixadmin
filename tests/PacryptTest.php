@@ -113,7 +113,7 @@ class PaCryptTest extends \PHPUnit\Framework\TestCase
         $password = 'hello';
 
         $randomHash = '$5$VhqhhsXJtPFeBX9e$kz3/CMIEu80bKdtDAcISIrDfdwtc.ilR68Vb3hNhu/7';
-        $randomHashWithPrefix = '{SHA256-CRYPT}' . $randomHash;
+        $randomHashWithPrefix = '{SHA256}' . $randomHash;
 
         $new = _pacrypt_php_crypt($password, '');
 
@@ -125,7 +125,7 @@ class PaCryptTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($randomHash, _pacrypt_php_crypt("hello", $randomHash));
         $this->assertEquals($randomHash, _pacrypt_crypt("hello", $randomHash));
 
-        Config::write('encrypt', 'php_crypt:SHA256::{SHA256-CRYPT}');
+        Config::write('encrypt', 'php_crypt:SHA256::{SHA256}');
 
         $enc = _pacrypt_php_crypt("hello", $randomHash);
         $this->assertEquals($randomHash, $enc); // we passed in something lacking the prefix, so we shouldn't have added it in.
@@ -136,7 +136,7 @@ class PaCryptTest extends \PHPUnit\Framework\TestCase
 
         $this->assertEquals($enc, _pacrypt_php_crypt($password, $enc));
 
-        $this->assertRegExp('/^\{SHA256-CRYPT\}/', $enc);
+        $this->assertRegExp('/^\{SHA256\}/', $enc);
         $this->assertGreaterThan(20, strlen($enc));
     }
 

@@ -1074,7 +1074,7 @@ function _pacrypt_dovecot($pw, $pw_db = '') {
 /**
  * Supports DES, MD5, BLOWFISH, SHA256, SHA512 methods.
  *
- * Via config we support an optional prefix (e.g. if you need hashes to start with {SHA256-CRYPT} and optional rounds (hardness) setting.
+ * Via config we support an optional prefix (e.g. if you need hashes to start with {SHA256} and optional rounds (hardness) setting.
  *
  * @param string $pw
  * @param string $pw_db (can be empty if setting a new password)
